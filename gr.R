@@ -1,21 +1,29 @@
 ############### Kaggle Submission (take on the Quants) 	#################
 ############### Author: Corey Chivers June,2012		#################
-## Update EURO2012
+
+# Parameters
+
+N=1                 #Number of Simulations
+matches_in_group<-6
+groups<-8
+teams_in_group<-4
+mean_total_score =  2.57  	## from data on recent games at: http://www.eloratings.net/world.html
+
+
+
+##### Code #####
 
 rm(list=ls())
 
 
-ratings<-read.csv('data/team_ratings.csv',stringsAsFactors=FALSE)
+ratings<-read.csv('~/git/euro_cup/data/team_ratings.csv',stringsAsFactors=FALSE)
 teams_e<-ratings$ELO.Rating-min(ratings$ELO.Rating-1)  ## <- Works well with ELO ratings (can regenerate winning and loosing score distributions)
 teams_e<-(teams_e)
 teams_e<-teams_e/max(teams_e)
 
 num_teams<-length(teams_e)
 
-mean_total_score =  2.57  	## from data on recent games at: http://www.eloratings.net/world.html
-					## Teams score goals in matches according to a poison distribution with 
-					## mean equal to their strength ratio (derived from ELO or FIFA rating)
-					## times <mean_total_score>   
+
 
 
 teams<-teams_e
@@ -26,11 +34,11 @@ teams<-teams_e
 	   strength<-1:2
 	   strength[1]<-ratio*mean_total_score
 	   strength[2]<-(1-ratio)*mean_total_score
-	
+
 	   score<-array(dim=2)
 	   score[1]<-rpois(1,strength[1])
 	   score[2]<-rpois(1,strength[2])
-	
+
 
 	    ##  1.Pld	2.W	3.D 	4.L 	5.GF 	6.GA 	7.GD 	8.Pts ##
 	   stat<-array(1,dim=c(2,8))
@@ -81,14 +89,17 @@ finals_match<-function(teams)
 	strength<-1:2
 	strength[1]<-ratio*mean_total_score
 	strength[2]<-(1-ratio)*mean_total_score
-	
+
 	score<-array(dim=2)
+
+    # TODO: Replace with while loop
+
 	max=100
 	for(i in 1:max) ## Keep playing until someone wins ##
 	{
 		score[1]<-rpois(1,strength[1])
 		score[2]<-rpois(1,strength[2])
-	
+
 		if(score[1]>score[2])
 			return(1)
 		if(score[2]>score[1])
@@ -99,15 +110,12 @@ finals_match<-function(teams)
 
 
 #### Simulate Tournament Outcomes #########
-matches<-as.matrix(read.table('data/matches.dat'))
-matches_in_group<-6
-groups<-4
-teams_in_group<-4
+matches<-as.matrix(read.table('~/git/euro_cup/data/matches.dat'))
 num_matches<-matches_in_group*groups
-N=10000
 winner_in_group<-array(dim=c(N,groups))
 group_rank<-array(dim=c(N,groups,teams_in_group))
 team_rank<-array(0,dim=c(N,num_teams))
+
 top<-array(dim=c(N,groups/2))
 bottom<-array(dim=c(N,groups/2))
 quarters<-array(dim=c(N,groups))
@@ -139,7 +147,8 @@ for(i in 1:N)
 	winner_in_group[i,g]<- group_rank[i,g,1]
 	s<-f+1
 
- }	
+ }
+
 	m=1
   if(F) #Straight to semis
    {
@@ -152,7 +161,7 @@ for(i in 1:N)
 	   }
 	   m=1
 	   for(g in seq(2,groups,2))	## (bottom)
-	   {	
+	   {
 		   cur_teams<-c(group_rank[i,g,1],group_rank[i,g-1,2])
 		   cur_match<-teams[ cur_teams ]
 		   bottom[i,m]<-cur_teams[finals_match(cur_match)]
@@ -183,7 +192,7 @@ for(i in 1:N)
 		semis[i,game]<-cur_teams[finals_match(cur_match)]
 		game=game+1
 	}
-	
+
 	cur_teams<-c(semis[i,1],semis[i,2])	## FINALS!!##
 	cur_match<-teams[ cur_teams ]
 	final_game[i]<-cur_teams[finals_match(cur_match)]
@@ -194,7 +203,7 @@ for(i in 1:N)
 
 #################################### Summarize Predictions ######################################
 
-	
+
 y<-hist(final_game,plot=FALSE,breaks=seq(0.5,16.5,1,))
 
 
@@ -208,7 +217,7 @@ plot(y$density,ratings$ELO.Rating,
    xlim=c(0,0.35))
 
    text(y$density+0.035,ratings$ELO.Rating,labels=ratings$Country)
- 
+
 dev.off()
 
 
