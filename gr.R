@@ -1,44 +1,68 @@
 ############### Kaggle Submission (take on the Quants) 	#################
 ############### Author: Corey Chivers June,2012		#################
 
+# TODO: Update ELO ranking
+# TODO: Draw histogram
+
+#Cleanup
+rm(list=ls())
+
 # Parameters
 
-N=1                 #Number of Simulations
+N<-100000              #Number of Simulations
 matches_in_group<-6
 groups<-8
 teams_in_group<-4
-mean_total_score =  2.57  	## from data on recent games at: http://www.eloratings.net/world.html
+mean_total_score<-2.57  	## from data on recent games at: http://www.eloratings.net/world.html
 
 
 
 ##### Code #####
 
-rm(list=ls())
 
 
+# Read data and normalize
 ratings<-read.csv('~/git/euro_cup/data/team_ratings.csv',stringsAsFactors=FALSE)
-teams_e<-ratings$ELO.Rating-min(ratings$ELO.Rating-1)  ## <- Works well with ELO ratings (can regenerate winning and loosing score distributions)
-teams_e<-(teams_e)
-teams_e<-teams_e/max(teams_e)
+matches<-as.matrix(read.table('~/git/euro_cup/data/matches.dat', sep=';', na.strings = "NA", fill=TRUE))
 
+# Define variables
+teams_e<-ratings$ELO.Rating-min(ratings$ELO.Rating-1)  
+teams<-teams_e/max(teams_e)
 num_teams<-length(teams_e)
+num_matches<-matches_in_group*groups
+winner_in_group<-array(dim=c(N,groups))
+group_rank<-array(dim=c(N,groups,teams_in_group))
+team_rank<-array(0,dim=c(N,num_teams))
+top<-array(dim=c(N,groups/2))
+bottom<-array(dim=c(N,groups/2))
+quarters<-array(dim=c(N,groups))
+semis<-array(dim=c(N,2))
+final_game<-array(dim=N)
 
 
-
-
-teams<-teams_e
-
-   group_match<-function(teams)
+# Define Funcions
+group_match<-function(teams,result)
    {
-	   ratio<-teams[1]/(teams[1]+teams[2])
-	   strength<-1:2
-	   strength[1]<-ratio*mean_total_score
-	   strength[2]<-(1-ratio)*mean_total_score
 
-	   score<-array(dim=2)
-	   score[1]<-rpois(1,strength[1])
-	   score[2]<-rpois(1,strength[2])
-
+      score<-array(dim=2)
+  
+	   if(is.na(result[1])){
+	     
+	     ratio<-teams[1]/(teams[1]+teams[2])
+	     strength<-1:2
+	     strength[1]<-ratio*mean_total_score
+	     strength[2]<-(1-ratio)*mean_total_score
+	     
+	     score[1]<-rpois(1,strength[1])
+	     score[2]<-rpois(1,strength[2])
+	     
+	   } else {
+	     
+	     score[1]<-result[1]
+	     score[2]<-result[2]
+	     
+	   }
+	   
 
 	    ##  1.Pld	2.W	3.D 	4.L 	5.GF 	6.GA 	7.GD 	8.Pts ##
 	   stat<-array(1,dim=c(2,8))
@@ -110,18 +134,6 @@ finals_match<-function(teams)
 
 
 #### Simulate Tournament Outcomes #########
-matches<-as.matrix(read.table('~/git/euro_cup/data/matches.dat'))
-num_matches<-matches_in_group*groups
-winner_in_group<-array(dim=c(N,groups))
-group_rank<-array(dim=c(N,groups,teams_in_group))
-team_rank<-array(0,dim=c(N,num_teams))
-
-top<-array(dim=c(N,groups/2))
-bottom<-array(dim=c(N,groups/2))
-quarters<-array(dim=c(N,groups))
-semis<-array(dim=c(N,2))
-final_game<-array(dim=N)
-
 
 for(i in 1:N)
 {
@@ -135,7 +147,7 @@ for(i in 1:N)
  {
    for(ma in 1:matches_in_group)
    {
-    team_stats[matches[m,],]<-group_match(teams[matches[m,]])+team_stats[matches[m,],]
+    team_stats[matches[m,seq(1,2)],]<-group_match(teams[matches[m,seq(1,2)]],matches[m,seq(3,4)])+team_stats[matches[m,seq(1,2)],]
     m=m+1
    }
 	f<-g*teams_in_group
@@ -150,24 +162,22 @@ for(i in 1:N)
  }
 
 	m=1
-  if(F) #Straight to semis
-   {
-	   for(g in seq(1,groups-1,2))	## Round 16 (top)
-	   {
-		   cur_teams<-c(group_rank[i,g,1],group_rank[i,g+1,2])
-		   cur_match<-teams[ cur_teams ]
-		   top[i,m]<-cur_teams[finals_match(cur_match)]
-		   m=m+1
-	   }
-	   m=1
-	   for(g in seq(2,groups,2))	## (bottom)
-	   {
-		   cur_teams<-c(group_rank[i,g,1],group_rank[i,g-1,2])
-		   cur_match<-teams[ cur_teams ]
-		   bottom[i,m]<-cur_teams[finals_match(cur_match)]
-		   m=m+1
-	   }
-   }
+ for(g in seq(1,groups-1,2))	## Round 16 (top)
+ {
+   cur_teams<-c(group_rank[i,g,1],group_rank[i,g+1,2])
+   cur_match<-teams[ cur_teams ]
+   top[i,m]<-cur_teams[finals_match(cur_match)]
+   m=m+1
+ }
+ m=1
+ for(g in seq(2,groups,2))	## (bottom)
+ {
+   cur_teams<-c(group_rank[i,g,1],group_rank[i,g-1,2])
+   cur_match<-teams[ cur_teams ]
+   bottom[i,m]<-cur_teams[finals_match(cur_match)]
+   m=m+1
+ }
+
 
 	game=1				## Quarters
 	for(g in c(1,3))
