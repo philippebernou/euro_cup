@@ -23,6 +23,7 @@ mean_total_score<-2.57  	## from data on recent games at: http://www.eloratings.
 
 # Read data and normalize
 ratings<-read.csv('~/git/euro_cup/data/team_ratings.csv',stringsAsFactors=FALSE)
+ratings<-ratings[order(ratings$Group),]
 matches<-as.matrix(read.table('~/git/euro_cup/data/matches.dat', sep=';', na.strings = "NA", fill=TRUE))
 
 # Define variables
@@ -32,7 +33,6 @@ num_teams<-length(teams_e)
 num_matches<-matches_in_group*groups
 winner_in_group<-array(dim=c(N,groups))
 group_rank<-array(dim=c(N,groups,teams_in_group))
-team_rank<-array(0,dim=c(N,num_teams))
 top<-array(dim=c(N,groups/2))
 bottom<-array(dim=c(N,groups/2))
 quarters<-array(dim=c(N,groups))
@@ -132,6 +132,31 @@ finals_match<-function(teams)
 			print('Tie not broken!')
 }
 
+report_group_ranks_sim<-function(n,group_rank,rating)
+  {
+  
+  group_count <- dim(group_rank[n,,])[1]
+  team_count <- dim(group_rank[n,,])[2]
+  
+  groups<-c(1:group_count)
+  teams<-c(1:team_count)
+  
+  for (group in groups){
+    
+    print(paste("Group No ",group))
+    
+    for (team in teams){
+      
+      print(paste("    ",ratings$Country[group_rank[n,group,team]]))
+      
+      
+    }
+    
+    
+  }
+  
+}
+
 
 #### Simulate Tournament Outcomes #########
 
@@ -150,11 +175,11 @@ for(i in 1:N)
     team_stats[matches[m,seq(1,2)],]<-group_match(teams[matches[m,seq(1,2)]],matches[m,seq(3,4)])+team_stats[matches[m,seq(1,2)],]
     m=m+1
    }
+   
 	f<-g*teams_in_group
+	
 	## ranking as per tie breaking rules in Group round
 	group_rank[i,g,]<-(s-1) + order(team_stats[s:f,8],team_stats[s:f,7], team_stats[s:f,5] ,decreasing=TRUE)
-	for(t in s:f)
-		team_rank[i,t]<-which(group_rank[i,g,]==t)
 
 	winner_in_group[i,g]<- group_rank[i,g,1]
 	s<-f+1
@@ -169,6 +194,7 @@ for(i in 1:N)
    top[i,m]<-cur_teams[finals_match(cur_match)]
    m=m+1
  }
+	
  m=1
  for(g in seq(2,groups,2))	## (bottom)
  {
@@ -177,7 +203,6 @@ for(i in 1:N)
    bottom[i,m]<-cur_teams[finals_match(cur_match)]
    m=m+1
  }
-
 
 	game=1				## Quarters
 	for(g in c(1,3))
@@ -194,6 +219,7 @@ for(i in 1:N)
 		quarters[i,game]<-cur_teams[finals_match(cur_match)]
 		game=game+1
 	}
+	
 	game=1
 	for(g in c(1,3))		## Semi-finals
 	{
@@ -206,6 +232,7 @@ for(i in 1:N)
 	cur_teams<-c(semis[i,1],semis[i,2])	## FINALS!!##
 	cur_match<-teams[ cur_teams ]
 	final_game[i]<-cur_teams[finals_match(cur_match)]
+	
 }
 
 
