@@ -181,7 +181,6 @@ for(i in 1:N)
 	## ranking as per tie breaking rules in Group round
 	group_rank[i,g,]<-(s-1) + order(team_stats[s:f,8],team_stats[s:f,7], team_stats[s:f,5] ,decreasing=TRUE)
 
-	winner_in_group[i,g]<- group_rank[i,g,1]
 	s<-f+1
 
  }
