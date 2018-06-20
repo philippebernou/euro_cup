@@ -8,8 +8,8 @@
 rm(list=ls())
 
 # Parameters
-
-N<-100000              #Number of Simulations
+debug_log<-TRUE
+N<-100          #Number of Simulations
 matches_in_group<-6
 groups<-8
 teams_in_group<-4
@@ -27,13 +27,14 @@ ratings<-ratings[order(ratings$Group),]
 matches<-as.matrix(read.table('~/git/euro_cup/data/matches.dat', sep=';', na.strings = "NA", fill=TRUE))
 
 # Define variables
+round_matches<-groups*matches_in_group
 teams_e<-ratings$ELO.Rating-min(ratings$ELO.Rating-1)  
 teams<-teams_e/max(teams_e)
 num_teams<-length(teams_e)
 num_matches<-matches_in_group*groups
 winner_in_group<-array(dim=c(N,groups))
 group_rank<-array(dim=c(N,groups,teams_in_group))
-top<-array(dim=c(N,groups/2))
+top<-array(dim=c(N,groups))
 bottom<-array(dim=c(N,groups/2))
 quarters<-array(dim=c(N,groups))
 semis<-array(dim=c(N,2))
@@ -184,40 +185,75 @@ for(i in 1:N)
 	s<-f+1
 
  }
+ 
+ if(debug_log){
+   report_group_ranks_sim(i,group_rank,rating)
+ }
 
-	m=1
- for(g in seq(1,groups-1,2))	## Round 16 (top)
- {
-   cur_teams<-c(group_rank[i,g,1],group_rank[i,g+1,2])
-   cur_match<-teams[ cur_teams ]
-   top[i,m]<-cur_teams[finals_match(cur_match)]
-   m=m+1
+ 
+ ## Round 16 (top / bottom )
+m=1
+ for(offset in c(0,1)){
+   
+   for(g in seq(1+offset,groups,2))	
+   {
+     
+     if(offset==1){
+       runnerup_group=g-1
+     } else {
+       runnerup_group=g+1
+     }
+     
+     cur_teams<-c(group_rank[i,g,1],group_rank[i,runnerup_group,2])
+     
+     	if(debug_log){
+     
+     	  print(paste("Winner ",ratings$Group[group_rank[i,g,1]], " vs Runner-up",ratings$Group[group_rank[i,runnerup_group,2]] ))
+     	  print(paste(ratings$Country[group_rank[i,g,1]], " vs ",ratings$Country[group_rank[i,runnerup_group,2]] ))
+     	  
+      }
+     
+     cur_match<-teams[ cur_teams ]
+     
+     top[i,m]<-cur_teams[finals_match(cur_match)]
+     
+     if(debug_log){
+       
+       print(paste("Winner Match ",round_matches+m," " ,ratings$Country[top[i,m]]))
+       
+     }
+     
+     m=m+1
+   }
+   
  }
-	
- m=1
- for(g in seq(2,groups,2))	## (bottom)
- {
-   cur_teams<-c(group_rank[i,g,1],group_rank[i,g-1,2])
-   cur_match<-teams[ cur_teams ]
-   bottom[i,m]<-cur_teams[finals_match(cur_match)]
-   m=m+1
- }
+ 
+    if(debug_log){
+       
+      for(loop in seq(1,8)){
+        
+         print(ratings$Country[top[i,loop]])
+        
+      }
+       
+     }
+
 
 	game=1				## Quarters
-	for(g in c(1,3))
-	{
-		cur_teams<-c(group_rank[i,g,1],group_rank[i,g+1,2])
-		cur_match<-teams[ cur_teams ]
-		quarters[i,game]<-cur_teams[finals_match(cur_match)]
-		game=game+1
+	
+	for(offset in c(0,1)){
+	  
+	  for(g in c(1,3))
+  	{
+  		cur_teams<-c(group_rank[i,g+offset,1],group_rank[i,g+(1-offset),2])
+  		cur_match<-teams[ cur_teams ]
+  		quarters[i,game]<-cur_teams[finals_match(cur_match)]
+  		game=game+1
+	  	}
+	
+	  
 	}
-	for(g in c(1,3))
-	{
-		cur_teams<-c(group_rank[i,g+1,1],group_rank[i,g,2])
-		cur_match<-teams[ cur_teams ]
-		quarters[i,game]<-cur_teams[finals_match(cur_match)]
-		game=game+1
-	}
+
 	
 	game=1
 	for(g in c(1,3))		## Semi-finals
@@ -240,20 +276,8 @@ for(i in 1:N)
 #################################### Summarize Predictions ######################################
 
 
-y<-hist(final_game,plot=FALSE,breaks=seq(0.5,16.5,1,))
-
-
-png('output/pov.png')
-
-par(cex=1.1,mar=c(4,4,2,1))
-plot(y$density,ratings$ELO.Rating,
-   pch=20,
-   xlab='Probability of Victory',
-   ylab='ELO Rating',
-   xlim=c(0,0.35))
-
-   text(y$density+0.035,ratings$ELO.Rating,labels=ratings$Country)
-
-dev.off()
+y<-100*sort(summary(as.factor(final_game)))/N
+y
+plot(y)
 
 
