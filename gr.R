@@ -336,8 +336,10 @@ m=1
 #################################### Summarize Predictions ######################################
 
 
-y<-100*sort(summary(as.factor(final_game)))/N
-y
-plot(y)
+results<-cbind(country=ratings$Country[as.numeric(attributes(probs)$names)],probs=as.numeric(100*sort(summary(as.factor(final_game)))/N))
+
+results<-as.data.frame(results[order(-probs),])
+
+results
 
 
