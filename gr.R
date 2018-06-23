@@ -8,8 +8,8 @@
 rm(list=ls())
 
 # Parameters
-debug_log<-TRUE
-N<-100          #Number of Simulations
+debug_log<-FALSE
+N<-100000   #Number of Simulations
 matches_in_group<-6
 groups<-8
 teams_in_group<-4
@@ -191,7 +191,15 @@ for(i in 1:N)
  }
 
  
- ## Round 16 (top / bottom )
+ 
+ if(debug_log){
+
+   print("###############")
+   print("# Round of 16 #")
+   print("###############")
+   
+ }
+ 
 m=1
  for(offset in c(0,1)){
    
@@ -219,7 +227,7 @@ m=1
      
      if(debug_log){
        
-       print(paste("Winner Match ",round_matches+m," " ,ratings$Country[top[i,m]]))
+       print(paste("Wins: ",round_matches+m," " ,ratings$Country[top[i,m]]))
        
      }
      
@@ -228,45 +236,97 @@ m=1
    
  }
  
-    if(debug_log){
-       
-      for(loop in seq(1,8)){
-        
-         print(ratings$Country[top[i,loop]])
-        
-      }
-       
-     }
 
-
-	game=1				## Quarters
 	
-	for(offset in c(0,1)){
+	if(debug_log){
 	  
-	  for(g in c(1,3))
+	  print("###########")
+	  print("# Quarter #")
+	  print("###########")
+	  
+	} 
+
+  game=1
+	  
+	  for(g in seq(1,8,2))
   	{
-  		cur_teams<-c(group_rank[i,g+offset,1],group_rank[i,g+(1-offset),2])
+  		cur_teams<-c(top[i,g],top[i,g+1])
+  		
+  		if(debug_log){
+  		  
+  		  print(paste(ratings$Country[top[i,g]], " vs ",ratings$Country[top[i,g+1]] ))
+  		  
+  		}
+  		
   		cur_match<-teams[ cur_teams ]
   		quarters[i,game]<-cur_teams[finals_match(cur_match)]
+  		
+  		if(debug_log){
+  		  
+  		  print(paste("Wins: ",ratings$Country[quarters[i,game]] ))
+  		  
+  		}
+  		
   		game=game+1
 	  	}
-	
-	  
-	}
 
+  if(debug_log){
+    
+    print("############")
+    print("#   Semi   #")
+    print("############")
+    
+  }
 	
 	game=1
 	for(g in c(1,3))		## Semi-finals
 	{
 		cur_teams<-c(quarters[i,g],quarters[i,g+1])
+		
+		if(debug_log){
+		  
+		  print(paste(ratings$Country[quarters[i,g]], " vs ",ratings$Country[quarters[i,g+1]] ))
+		  
+		}
+		
 		cur_match<-teams[ cur_teams ]
 		semis[i,game]<-cur_teams[finals_match(cur_match)]
+		
+		if(debug_log){
+		  
+		  print(paste("Wins: ",ratings$Country[semis[i,game]] ))
+		  
+		}
+		
 		game=game+1
 	}
 
-	cur_teams<-c(semis[i,1],semis[i,2])	## FINALS!!##
+	
+	if(debug_log){
+	  
+	  print("#############")
+	  print("#   Final   #")
+	  print("#############")
+	  
+	}
+	
+	cur_teams<-c(semis[i,1],semis[i,2])	
+	
+	if(debug_log){
+	  
+	  print(paste(ratings$Country[semis[i,1]], " vs ",ratings$Country[semis[i,2]] ))
+	  
+	}
+	
 	cur_match<-teams[ cur_teams ]
 	final_game[i]<-cur_teams[finals_match(cur_match)]
+	
+	if(debug_log){
+	  
+	  print(paste("Wins: ",ratings$Country[final_game[i]] ))
+	  
+	}
+	
 	
 }
 
